@@ -1,0 +1,41 @@
+let
+  Source = SharePoint.Files("https://flankspeed.sharepoint-mil.us/sites/NSS-SYWeeklyDailyDrop", [ApiVersion = 15]),
+  #"Filtered for Daily Trace Files" = Table.SelectRows(Source, each Text.StartsWith([Folder Path], "https://flankspeed.sharepoint-mil.us/sites/NSS-SYWeeklyDailyDrop/Shared Documents/General/DailyData/Daily Trace/")),
+    #"Replaced Value" = Table.ReplaceValue(#"Filtered for Daily Trace Files","-","",Replacer.ReplaceText,{"Name"}),
+  #"Filtered hidden files" = Table.SelectRows(#"Replaced Value", each [Attributes]?[Hidden]? <> true),
+  #"Removed duplicates" = Table.Distinct(#"Filtered hidden files", {"Name"}),
+  #"Sorted rows in ascending order of Name" = Table.Sort(#"Removed duplicates", {{"Name", Order.Ascending}}),
+  #"Duplicated Name column as Data Date" = Table.DuplicateColumn(#"Sorted rows in ascending order of Name", "Name", "Data Date"),
+  #"Extracted date from Data Date" = Table.TransformColumns(#"Duplicated Name column as Data Date", {{"Data Date", each Text.Middle(_, 10, 8), type text}}),
+  #"Changed Data Date column type" = Table.TransformColumnTypes(#"Extracted date from Data Date", {{"Data Date", type date}}),
+    #"Removed Errors" = Table.RemoveRowsWithErrors(#"Changed Data Date column type", {"Data Date"}),
+  #"Added Max Data Date" = Table.AddColumn(#"Removed Errors", "Max Data Date", each List.Max(#"Removed Errors"[Data Date])),
+  #"Changed Max Data Date type" = Table.TransformColumnTypes(#"Added Max Data Date", {{"Max Data Date", type date}}),
+  #"Added Earliest Date" = Table.AddColumn(#"Changed Max Data Date type", "Earliest Date", each Date.AddDays([Max Data Date], -190)),
+  #"Added Is After Earliest Date" = Table.AddColumn(#"Added Earliest Date", "Is After Earliest Date", each if [Data Date] >= [Earliest Date]
+then "YES"
+else "NO"),
+  #"Filtered rows" = Table.SelectRows(#"Added Is After Earliest Date", each ([Is After Earliest Date] = "YES")),
+  #"Added index" = Table.AddIndexColumn(#"Filtered rows", "Index", 0, 1, Int64.Type),
+  #"Added First Day of Week column" = Table.AddColumn(#"Added index", "First Day of Week", each let
+        Source = #"Added index",
+        CurrentDayOfWeek = Date.DayOfWeek([Data Date], Day.Monday),
+        IsMonday = CurrentDayOfWeek = 0,
+        PreviousDayOfWeek = if [Index] = 0 then null else Date.DayOfWeek(Source[Data Date]{[Index]-1}, Day.Monday),
+        IsFirstOfWeek = if [Index] = 0 then false else if PreviousDayOfWeek>=CurrentDayOfWeek then true else false
+    in
+        IsMonday or IsFirstOfWeek),
+  #"Filtered only for First Day of Week" = Table.SelectRows(#"Added First Day of Week column", each [First Day of Week] = true),
+  #"Filtered hidden files 1" = Table.SelectRows(#"Filtered only for First Day of Week", each [Attributes]?[Hidden]? <> true),
+  #"Invoke custom function" = Table.AddColumn(#"Filtered hidden files 1", "Trace Files Transform file", each #"Trace Files Transform file"([Content])),
+    #"Removed Errors1" = Table.RemoveRowsWithErrors(#"Invoke custom function", {"Trace Files Transform file"}),
+  #"Removed columns" = Table.RemoveColumns(#"Removed Errors1", {"Folder Path", "Attributes", "Date created", "Date modified", "Date accessed", "Extension", "Name", "Content", "Max Data Date", "Earliest Date", "Is After Earliest Date", "Index", "First Day of Week"}),
+  #"Expanded Transform file" = Table.ExpandTableColumn(#"Removed columns", "Trace Files Transform file", {"ICN/KO", "WORKING STATUS", "ACTUAL START DATE", "ACTUAL COMPLETE DATE", "WORK TYPE", "ZONE MANAGER", "NAME", "SHOP CODE", "CALENDAR CODE", "STATUS SET DATE", "PROJ ID", "CURRENT START DATE", "CURRENT COMPLETION DATE", "TGI TYPE", "DURATION", "CU PHASE APPROVAL STATUS", "SUB-WORK TYPE", "TASK WORK TYPE 'O'", "TASK WORK TYPE 'R'", "TASK WORK TYPE 'M'", "TASK WORK TYPE 'N'", "TASK WORK TYPE 'OM'", "TASK WORK TYPE 'SC'", "% PROGRESS", "LABOR MANHOURS", "KEY EVENT TRACE", "MILESTONE TRACE", "TOTAL FLOAT", "PRIORITY COLOR", "TEST ID", "CU TYPE", "NUCLEAR", "TGI STATUS", "SY PRIORITY NUMBER", "WORK STOPPAGE REASON CODE", "COG CODE", "ESTIMATED RESOLUTION DATE", "SY", "WEEK_START", "DATA_DATE", "RDU_QY", "DAYS_STOPPED_QY", "TGI CODE", "CERT DATE"}, {"ICN/KO", "WORKING STATUS", "ACTUAL START DATE", "ACTUAL COMPLETE DATE", "WORK TYPE", "ZONE MANAGER", "NAME", "SHOP CODE", "CALENDAR CODE", "STATUS SET DATE", "PROJ ID", "CURRENT START DATE", "CURRENT COMPLETION DATE", "TGI TYPE", "DURATION", "CU PHASE APPROVAL STATUS", "SUB-WORK TYPE", "TASK WORK TYPE 'O'", "TASK WORK TYPE 'R'", "TASK WORK TYPE 'M'", "TASK WORK TYPE 'N'", "TASK WORK TYPE 'OM'", "TASK WORK TYPE 'SC'", "% PROGRESS", "LABOR MANHOURS", "KEY EVENT TRACE", "MILESTONE TRACE", "TOTAL FLOAT", "PRIORITY COLOR", "TEST ID", "CU TYPE", "NUCLEAR", "TGI STATUS", "SY PRIORITY NUMBER", "WORK STOPPAGE REASON CODE", "COG CODE", "ESTIMATED RESOLUTION DATE", "SY", "WEEK_START", "DATA_DATE", "RDU_QY", "DAYS_STOPPED_QY", "TGI CODE", "CERT DATE"}),
+  #"Changed column type" = Table.TransformColumnTypes(#"Expanded Transform file", {{"ICN/KO", type text}, {"WORKING STATUS", type text}, {"WORK TYPE", type text}, {"ZONE MANAGER", type text}, {"NAME", type text}, {"SHOP CODE", type text}, {"PROJ ID", type text}, {"TGI TYPE", type text}, {"CU PHASE APPROVAL STATUS", type text}, {"SUB-WORK TYPE", type text}, {"ACTUAL START DATE", type date}, {"ACTUAL COMPLETE DATE", type date}, {"STATUS SET DATE", type date}, {"CURRENT START DATE", type date}, {"CURRENT COMPLETION DATE", type date}, {"CALENDAR CODE", Int64.Type}, {"DURATION", Int64.Type}, {"TASK WORK TYPE 'O'", Int64.Type}, {"TASK WORK TYPE 'R'", Int64.Type}, {"TASK WORK TYPE 'M'", Int64.Type}, {"TASK WORK TYPE 'N'", Int64.Type}, {"TASK WORK TYPE 'OM'", Int64.Type}, {"TASK WORK TYPE 'SC'", Int64.Type}, {"% PROGRESS", Int64.Type}, {"TOTAL FLOAT", Int64.Type}, {"SY PRIORITY NUMBER", Int64.Type}, {"LABOR MANHOURS", type number}, {"KEY EVENT TRACE", type text}, {"MILESTONE TRACE", type text}, {"PRIORITY COLOR", type text}, {"TEST ID", type text}, {"CU TYPE", type text}, {"NUCLEAR", type text}, {"TGI STATUS", type text}, {"WORK STOPPAGE REASON CODE", type text}, {"COG CODE", type text}, {"ESTIMATED RESOLUTION DATE", type date}, {"WEEK_START", type date}, {"DATA_DATE", type date}, {"CERT DATE", type date}, {"SY", type text}, {"TGI CODE", type text}, {"RDU_QY", Int64.Type}, {"DAYS_STOPPED_QY", type number}}),
+  #"Filtered rows 1" = Table.SelectRows(#"Changed column type", each ([#"ICN/KO"] <> null)),
+
+    #"Changed Type" = Table.TransformColumnTypes(#"Filtered rows 1",{{"DATA_DATE", type date}}),
+    #"Removed Blank Rows" = Table.SelectRows(#"Changed Type", each not List.IsEmpty(List.RemoveMatchingItems(Record.FieldValues(_), {"", null}))),
+    #"Removed Duplicates" = Table.Distinct(#"Removed Blank Rows")
+in
+    #"Removed Duplicates"

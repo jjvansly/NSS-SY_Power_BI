@@ -1,0 +1,6 @@
+let
+    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45WUtJRMtAzRyPBDCNTIOWn7wgnIXIgdmwsAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [SHIPYARD = _t, OTS = _t, OTF = _t, TP = _t, OTD = _t, WS = _t, MAT = _t, TD = _t, CRT = _t, WIP = _t]),
+    #"Changed Type" = Table.TransformColumnTypes(Source,{{"SHIPYARD", type text}, {"OTS", type number}, {"OTF", type number}, {"TP", type number}, {"OTD", type number}, {"WS", type number}, {"MAT", type text}, {"TD", type text}, {"CRT", type number}, {"WIP", type text}}),
+    #"Removed Columns" = Table.RemoveColumns(#"Changed Type",{"SHIPYARD"})
+in
+    #"Removed Columns"
