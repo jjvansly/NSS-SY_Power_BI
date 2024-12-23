@@ -1,0 +1,118 @@
+%OTF = IF([Count of SCHEDULED TO COMPLETE] = BLANK(), "N/A", IF([Count of SCHEDULED TO COMPLETE] <> BLANK() && [Count of ON-TIME COMPLETE] = BLANK(), 0.0, [Count of ON-TIME COMPLETE]/[Count of SCHEDULED TO COMPLETE]))
+
+%OTS = IF([Count of SCHEDULED TO START] = BLANK(), "N/A", IF([Count of SCHEDULED TO START] <> BLANK() && [Count of ON-TIME START] = BLANK(), 0.0, [Count of ON-TIME START]/[Count of SCHEDULED TO START]))
+
+Average of ACTUAL COMPLETE = AVERAGEX(KEEPFILTERS(VALUES('WEEK START'[WEEK START])), [Count of ACTUAL COMPLETE])
+
+Average of WIP = IF( AVERAGEX(KEEPFILTERS(VALUES('WEEK START'[WEEK START])), [Count of WIP]) = BLANK(), "N/A", AVERAGEX(KEEPFILTERS(VALUES('WEEK START'[WEEK START])), [Count of WIP]))
+
+Certs (% Actual Complete) = IF([Count of ACTUAL COMPLETE] = BLANK(), "N/A", IF([Count of ACTUAL COMPLETE] <> BLANK() && [Count of ACTUAL CERT] = BLANK(), 0.0, [Count of ACTUAL CERT]/[Count of ACTUAL COMPLETE]))
+
+Certs (% Scheduled to Complete) = IF([Count of SCHEDULED TO COMPLETE] = BLANK(), "N/A", IF([Count of SCHEDULED TO COMPLETE] <> BLANK() && [Count of ACTUAL CERT] = BLANK(), 0.0, [Count of ACTUAL CERT]/[Count of SCHEDULED TO COMPLETE]))
+
+Count of ACTUAL CERT = CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[ACTUAL CERT] = "YES")
+
+Count of ACTUAL COMPLETE = CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[ACTUAL COMPLETE] = "YES")
+
+Count of ACTUAL START = CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[ACTUAL START] = "YES")
+
+Count of BASELINE FINISH = CALCULATE(COUNTROWS('Weekly Trace Files'), USERELATIONSHIP('WEEK START'[WEEK START], 'Weekly Trace Files'[BASELINE DATE WEEK START]), 'Weekly Trace Files'[BASELINE DATE WEEK START]<>BLANK())
+
+Count of BASELINE FINISH running total in WEEK START = 
+VAR RunningTotal = CALCULATE(
+	[Count of BASELINE FINISH],
+	FILTER(
+		ALLSELECTED('WEEK START'[WEEK START]),
+		ISONORAFTER('WEEK START'[WEEK START], MAX('WEEK START'[WEEK START]), DESC)
+	)
+)
+VAR MaxCA00 = CALCULATE(
+    MAX('Projects'[CA00])
+)
+VAR MaxSA00 = CALCULATE(
+    MAX('Projects'[SA00])
+)
+RETURN
+IF(MAX('WEEK START'[WEEK START]) >= MaxSA00 - 60 && MAX('WEEK START'[WEEK START]) <= MaxCA00, RunningTotal, BLANK())
+
+Count of CRT = CALCULATE(COUNTROWS('Weekly Trace Files'), USERELATIONSHIP('WEEK START'[WEEK START], 'Weekly Trace Files'[CERT DATE WEEK START]), 'Weekly Trace Files'[CERT DATE WEEK START] <> BLANK())
+
+Count of CRT running total in WEEK START = 
+VAR RunningTotal = CALCULATE(
+	[Count of CRT],
+	FILTER(
+		ALLSELECTED('WEEK START'[WEEK START]),
+		ISONORAFTER('WEEK START'[WEEK START], MAX('WEEK START'[WEEK START]), DESC)
+    )
+)
+VAR MaxSA00 = CALCULATE(
+    MAX('Projects'[SA00])
+)
+RETURN
+IF(MAX('WEEK START'[WEEK START]) >= MaxSA00 - 60 && MAX('WEEK START'[WEEK START]) <= TODAY() - WEEKDAY(TODAY(), 3) - 7, RunningTotal, BLANK())
+
+Count of EARLY FINISH = CALCULATE(COUNTROWS('Weekly Trace Files'), USERELATIONSHIP('WEEK START'[WEEK START], 'Weekly Trace Files'[EARLY FINISH WEEK START]))
+
+Count of FUTURE SCHEDULED TO COMPLETE = [Count of TOTAL CRT] + CALCULATE(COUNTROWS('Weekly Trace Files'), USERELATIONSHIP('WEEK START'[WEEK START], 'Weekly Trace Files'[FUTURE COMPLETION DATE WEEK START]), 'Weekly Trace Files'[FUTURE COMPLETION DATE WEEK START]<>BLANK())
+
+Count of FUTURE SCHEDULED TO COMPLETE running total in WEEK START = 
+VAR RunningTotal = CALCULATE(
+	[Count of FUTURE SCHEDULED TO COMPLETE],
+	FILTER(
+		ALLSELECTED('WEEK START'[WEEK START]),
+		ISONORAFTER('WEEK START'[WEEK START], MAX('WEEK START'[WEEK START]), DESC)
+	)
+)
+VAR MaxCA00 = CALCULATE(
+    MAX('Projects'[CA00])
+)
+RETURN
+IF(MAX('WEEK START'[WEEK START]) <= MaxCA00, RunningTotal, BLANK())
+
+Count of LATE FINISH = CALCULATE(COUNTROWS('Weekly Trace Files'), USERELATIONSHIP('WEEK START'[WEEK START], 'Weekly Trace Files'[LATE FINISH WEEK START]))
+
+Count of ON-TIME COMPLETE = CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[ON-TIME COMPLETE] = "YES")
+
+Count of ON-TIME START = CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[ON-TIME START] = "YES")
+
+Count of SCHEDULED THROUGHPUT = CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[SCHEDULED THROUGHPUT] = "YES")
+
+Count of SCHEDULED TO COMPLETE = CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[SCHEDULED TO COMPLETE] = "YES")
+
+Count of SCHEDULED TO START = CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[SCHEDULED TO START] = "YES")
+
+Count of TOTAL CRT = CALCULATE(COUNTROWS('Weekly Trace Files'), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[TOTAL CRT] = "YES")
+
+Count of WIP = IF( CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[WORKING STATUS] = "WKG", 'Weekly Trace Files'[IS FIRST DATA OF WEEK] = "YES") = BLANK(), "N/A", CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[WORKING STATUS] = "WKG", 'Weekly Trace Files'[IS FIRST DATA OF WEEK] = "YES"))
+
+Count of WORK STOPPAGES = CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('Weekly Trace Files'[WEEK START])), 'Weekly Trace Files'[WORK STOPPAGE REASON CODE] <> "", 'Weekly Trace Files'[IS FIRST DATA OF WEEK] = "YES", 'Weekly Trace Files'[WORKING STATUS] = "WKG")
+
+Count of WORK STOPPAGES - MAT = CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('Weekly Trace Files'[WEEK START])), 'Weekly Trace Files'[WORK STOPPAGE REASON CODE] = "MAT", 'Weekly Trace Files'[IS FIRST DATA OF WEEK] = "YES")
+
+Count of WORK STOPPAGES - TD = CALCULATE( COUNTROWS( 'Weekly Trace Files'), KEEPFILTERS(VALUES('Weekly Trace Files'[WEEK START])), 'Weekly Trace Files'[WORK STOPPAGE REASON CODE] = "TD", 'Weekly Trace Files'[IS FIRST DATA OF WEEK] = "YES")
+
+Current Week Start = MAX('Weekly Trace Files'[WEEK START])
+
+Delta EV / Expected EV = IF([Sum of Expected EV] = BLANK(), BLANK(), IF([Sum of Expected EV] <> BLANK() && [Sum of Delta EV] = BLANK(), 0.0, [Sum of Delta EV]/[Sum of Expected EV]))
+
+Delta RDU / SHIFTS IN WEEK = IF([Sum of SHIFTS IN WEEK] = BLANK(), BLANK(), IF([Sum of SHIFTS IN WEEK] <> BLANK() && [Sum of Delta RDU] = BLANK(), 0.0, [Sum of Delta RDU]/[Sum of SHIFTS IN WEEK]))
+
+Sum of CRT = CALCULATE(SUMX('Weekly Trace Files', 'Weekly Trace Files'[Count of CRT running total in WEEK START]))
+
+Sum of Delta EV = CALCULATE(SUM('Weekly Trace Files'[Delta EV]), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[ADDED RDU] <> "YES", 'Weekly Trace Files'[IS MIN DATA DATE] <> "YES")
+
+Sum of Delta RDU = CALCULATE(SUM('Weekly Trace Files'[Delta RDU_QY]), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[ADDED RDU] <> "YES", 'Weekly Trace Files'[IS MIN DATA DATE] <> "YES")
+
+Sum of Expected EV = CALCULATE(SUM('Weekly Trace Files'[Expected EV]), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[ADDED RDU] <> "YES", 'Weekly Trace Files'[IS MIN DATA DATE] <> "YES")
+
+Sum of Remaining EV = CALCULATE(SUM('Weekly Trace Files'[Remaining EV]), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[IS MIN DATA DATE] <> "YES")
+
+Sum of SHIFTS IN WEEK = CALCULATE(SUM('Weekly Trace Files'[SHIFTS IN WEEK]), KEEPFILTERS(VALUES('WEEK START'[WEEK START])), 'Weekly Trace Files'[IS MIN DATA DATE] <> "YES")
+
+Throughput (% demand) = IF([Count of SCHEDULED THROUGHPUT] = BLANK(), "N/A", IF([Count of SCHEDULED THROUGHPUT] <> BLANK() && [Count of ACTUAL COMPLETE] = BLANK(), 0.0, [Count of ACTUAL COMPLETE]/[Count of SCHEDULED THROUGHPUT]))
+
+WORK STOPPAGES - MAT (% WS) = IF([Count of WORK STOPPAGES] = BLANK(), "N/A", IF([Count of WORK STOPPAGES] <> BLANK() && [Count of WORK STOPPAGES - MAT] = BLANK(), 0.0, [Count of WORK STOPPAGES - MAT]/[Count of WORK STOPPAGES]))
+
+WORK STOPPAGES - TD (% WS) = IF([Count of WORK STOPPAGES] = BLANK(), "N/A", IF([Count of WORK STOPPAGES] <> BLANK() && [Count of WORK STOPPAGES - TD] = BLANK(), 0.0, [Count of WORK STOPPAGES - TD]/[Count of WORK STOPPAGES]))
+
+WORK STOPPAGES (% WIP) = IF([Count of WIP] = BLANK(), "N/A", IF([Count of WIP] <> BLANK() && [Count of WORK STOPPAGES] = BLANK(), 0.0, [Count of WORK STOPPAGES]/[Count of WIP]))
