@@ -1,0 +1,31 @@
+let
+  Source = SharePoint.Files("https://flankspeed.sharepoint-mil.us/sites/NSS-SYWeeklyDailyDrop", [ApiVersion = 15]),
+  #"Filtered rows 1" = Table.SelectRows(Source, each Text.Contains([Name], "TP_EV") and Text.StartsWith([Name], "CUI") and [Extension] = ".xlsx" and (
+   Text.StartsWith([Folder Path], "https://flankspeed.sharepoint-mil.us/sites/NSS-SYWeeklyDailyDrop/Shared Documents/General/DailyData/1_NNSY/")
+   or
+    Text.StartsWith([Folder Path], "https://flankspeed.sharepoint-mil.us/sites/NSS-SYWeeklyDailyDrop/Shared Documents/General/DailyData/2_PHNSY/")
+    or
+     Text.StartsWith([Folder Path], "https://flankspeed.sharepoint-mil.us/sites/NSS-SYWeeklyDailyDrop/Shared Documents/General/DailyData/3_PNSY/")
+     or
+      Text.StartsWith([Folder Path], "https://flankspeed.sharepoint-mil.us/sites/NSS-SYWeeklyDailyDrop/Shared Documents/General/DailyData/4_PSNSY/")
+  
+  )),
+
+  #"Filtered hidden files" = Table.SelectRows(#"Filtered rows 1", each [Attributes]?[Hidden]? <> true),
+  #"Removed other columns" = Table.SelectColumns(#"Filtered hidden files", {"Content", "Name","Folder Path"}),
+  #"Removed duplicates" = Table.Distinct(#"Removed other columns", {"Name"}),
+  #"Invoke custom function" = Table.AddColumn(#"Removed duplicates", "TP-EV Transform file", each #"TP-EV Transform file"([Content])),
+  #"Removed other columns 1" = Table.SelectColumns(#"Invoke custom function", {"TP-EV Transform file","Name","Folder Path"}),
+  #"Extracted text range" = Table.TransformColumns(#"Removed other columns 1", {{"Name", each Text.Middle(_, 14, 8), type text}}),
+  #"Changed column type" = Table.TransformColumnTypes(#"Extracted text range", {{"Name", type date}}),
+  #"Filtered rows" = Table.SelectRows(#"Changed column type", let latest = List.Max(#"Changed column type"[Name]) in each [Name] = latest),
+  #"Expanded Transform file" = Table.ExpandTableColumn(#"Filtered rows", "TP-EV Transform file", {"ICN/KO", "WORKING STATUS", "ACTUAL START DATE", "ACTUAL COMPLETE DATE", "CALENDAR CODE", "CURRENT START DATE", "CURRENT COMPLETION DATE", "DURATION", "CU PHASE APPROVAL STATUS", "% PROGRESS", "LABOR MANHOURS", "KEY EVENT TRACE", "TOTAL FLOAT", "CStat", "TotEst", "EarnEst", "RmEst", "APP Est", "WKG Est", "Mon Ref Date", "KEs @ CRT", "AK", "AL", "Days Float", "Eff Start", "Eff Finish", "P/E/C", "ES Mon", "EF Mon", "LS", "LF", "LS Mon", "LF Mon", "AS Mon", "AF Mon", "Orig ES", "Orig EF", "Orig LS", "Orig LF", "Rev ES", "Rev EF", "Rev LS", "Rev LF", "EF BL Mon", "LF BL Mon"}, {"ICN/KO", "WORKING STATUS", "ACTUAL START DATE", "ACTUAL COMPLETE DATE", "CALENDAR CODE", "CURRENT START DATE", "CURRENT COMPLETION DATE", "DURATION", "CU PHASE APPROVAL STATUS", "% PROGRESS", "LABOR MANHOURS", "KEY EVENT TRACE", "TOTAL FLOAT", "CStat", "TotEst", "EarnEst", "RmEst", "APP Est", "WKG Est", "Mon Ref Date", "KEs @ CRT", "AK", "AL", "Days Float", "Eff Start", "Eff Finish", "P/E/C", "ES Mon", "EF Mon", "LS", "LF", "LS Mon", "LF Mon", "AS Mon", "AF Mon", "Orig ES", "Orig EF", "Orig LS", "Orig LF", "Rev ES", "Rev EF", "Rev LS", "Rev LF", "EF BL Mon", "LF BL Mon"}),
+  #"Changed column type 1" = Table.TransformColumnTypes(#"Expanded Transform file", {{"ICN/KO", type text}, {"WORKING STATUS", type text}, {"ACTUAL START DATE", type date}, {"ACTUAL COMPLETE DATE", type date}, {"CALENDAR CODE", type text}, {"CURRENT START DATE", type date}, {"CURRENT COMPLETION DATE", type date}, {"DURATION", Int64.Type}, {"CU PHASE APPROVAL STATUS", type text}, {"% PROGRESS", Int64.Type}, {"LABOR MANHOURS", type number}, {"KEY EVENT TRACE", type text}, {"TOTAL FLOAT", Int64.Type}, {"CStat", type text}, {"TotEst", Int64.Type}, {"EarnEst", Int64.Type}, {"RmEst", Int64.Type}, {"APP Est", Int64.Type}, {"WKG Est", Int64.Type}, {"Mon Ref Date", type date}, {"KEs @ CRT", type text}, {"LF BL Mon", type date}, {"EF BL Mon", type date}, {"Rev LF", type date}, {"Rev LS", type date}, {"Rev EF", type date}, {"Rev ES", type date}, {"Orig LF", type date}, {"Orig LS", type date}, {"Orig EF", type date}, {"Orig ES", type date}, {"AF Mon", type date}, {"AS Mon", type date}, {"LF Mon", type date}, {"LS Mon", type date}, {"LF", type date}, {"LS", type date}, {"EF Mon", type date}, {"ES Mon", type date}, {"Eff Start", type date}, {"Eff Finish", type date}, {"P/E/C", type text}, {"Days Float", Int64.Type}, {"AK", type text}, {"AL", type text}}),
+  #"Renamed columns" = Table.RenameColumns(#"Changed column type 1", {{"Name", "DATA DATE"}}),
+  #"Extracted text between delimiters" = Table.TransformColumns(#"Renamed columns", {{"Folder Path", each Text.BetweenDelimiters(_, "_", "/", 0, 0), type text}}),
+  #"Renamed columns 1" = Table.RenameColumns(#"Extracted text between delimiters", {{"Folder Path", "SY"}}),
+
+    #"Filtered Rows" = Table.SelectRows(#"Renamed columns 1", each ([#"ICN/KO"] <> "" and [#"ICN/KO"] <> null)),
+    #"Removed Columns" = Table.RemoveColumns(#"Filtered Rows",{"WORKING STATUS", "ACTUAL START DATE", "ACTUAL COMPLETE DATE", "CALENDAR CODE", "CURRENT START DATE", "CURRENT COMPLETION DATE", "DURATION", "CU PHASE APPROVAL STATUS", "% PROGRESS", "LABOR MANHOURS", "KEY EVENT TRACE", "TOTAL FLOAT", "CStat", "Mon Ref Date", "KEs @ CRT", "AK", "AL", "Days Float", "Eff Start", "Eff Finish", "P/E/C", "ES Mon", "EF Mon", "LS", "LF", "LS Mon", "LF Mon", "AS Mon", "AF Mon", "Orig ES", "Orig EF", "Orig LS", "Orig LF", "Rev ES", "Rev LS", "EF BL Mon", "LF BL Mon"})
+in
+    #"Removed Columns"
