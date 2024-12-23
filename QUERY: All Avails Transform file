@@ -1,0 +1,5 @@
+(Parameter as binary) => let
+  Source = Excel.Workbook(Parameter, null, true),
+  Navigation = Source{[Item = "tblOutput", Kind = "Table"]}[Data]
+in
+  Navigation
