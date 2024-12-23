@@ -1,0 +1,9 @@
+let
+    Source = (Parameter2) => let
+        Source = Excel.Workbook(Parameter2, null, true),
+        #"CUPh Hist_Sheet" = Source{[Item="CUPh Hist",Kind="Sheet"]}[Data],
+        #"Promoted Headers" = Table.PromoteHeaders(#"CUPh Hist_Sheet", [PromoteAllScalars=true])
+    in
+        #"Promoted Headers"
+in
+    Source

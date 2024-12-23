@@ -1,0 +1,9 @@
+let
+    Source = (Parameter1) => let
+        Source = Excel.Workbook(Parameter1, null, true),
+        Report1_Sheet = Source{0}[Data],
+        #"Promoted Headers" = Table.PromoteHeaders(Report1_Sheet, [PromoteAllScalars=true])
+    in
+        #"Promoted Headers"
+in
+    Source
