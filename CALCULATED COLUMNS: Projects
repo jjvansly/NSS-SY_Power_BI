@@ -1,0 +1,27 @@
+PROJECT NAME = UPPER(LOOKUPVALUE('All Avails'[Proj. Name], 'All Avails'[Project ID], [PROJ ID], 'All Avails'[SY], [SY]) & " " & LOOKUPVALUE('All Avails'[Tpav], 'All Avails'[Project ID], [PROJ ID], 'All Avails'[SY], [SY]))
+
+SA00 = LOOKUPVALUE('Weekly KEMS AIM'[Authorized Date], 'Weekly KEMS AIM'[PROJ ID], [PROJ ID], 'Weekly KEMS AIM'[SY], [SY], 'Weekly KEMS AIM'[Event ID], "SA00")
+
+RM00 = LOOKUPVALUE('Weekly KEMS AIM'[Authorized Date], 'Weekly KEMS AIM'[PROJ ID], [PROJ ID], 'Weekly KEMS AIM'[SY], [SY], 'Weekly KEMS AIM'[Event ID], "RM00")
+
+UD00 = LOOKUPVALUE('Weekly KEMS AIM'[Authorized Date], 'Weekly KEMS AIM'[PROJ ID], [PROJ ID], 'Weekly KEMS AIM'[SY], [SY], 'Weekly KEMS AIM'[Event ID], "UD00")
+
+PW00 = LOOKUPVALUE('Weekly KEMS AIM'[Authorized Date], 'Weekly KEMS AIM'[PROJ ID], [PROJ ID], 'Weekly KEMS AIM'[SY], [SY], 'Weekly KEMS AIM'[Event ID], "PW00")
+
+CA00 = LOOKUPVALUE('Weekly KEMS AIM'[Authorized Date], 'Weekly KEMS AIM'[PROJ ID], [PROJ ID], 'Weekly KEMS AIM'[SY], [SY], 'Weekly KEMS AIM'[Event ID], "CA00")
+
+CNO = LOOKUPVALUE('All Avails'[CNO], 'All Avails'[Project ID], [PROJ ID], 'All Avails'[SY], [SY])
+
+AVAIL TYPE = IF([PROJ ID] = "NAV", "NAV", IF([PROJ ID] = "OPW", "OPW", IF([PROJ ID] = "C19", "OPW", IF([PROJ ID] = "MFG", "OPW", IF([PROJ ID] = "MDR", "OPW", IF([PROJ ID] = "R13", "OPW", IF([PROJ ID] = "SH4", "OPW", IF([PROJ ID] = "SHT", "OPW", IF([PROJ ID] = "N/A", "N/A", IF([CNO] <> "1", "Non-CNO", "CNO"))))))))))
+
+SA00 WEEK START = [SA00] - WEEKDAY([SA00],3)
+
+RM00 WEEK START = [RM00] - WEEKDAY([RM00],3)
+
+UD00 WEEK START = [UD00] - WEEKDAY([UD00].[Date],3)
+
+PW00 WEEK START = [PW00] - WEEKDAY([PW00],3)
+
+CA00 WEEK START = [CA00] - WEEKDAY([CA00], 3)
+
+SY-PROJ ID = [SY] & "-" & [PROJ ID]
