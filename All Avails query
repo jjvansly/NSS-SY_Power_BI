@@ -1,0 +1,26 @@
+let
+    Source = SharePoint.Files("https://flankspeed.sharepoint-mil.us/sites/NSS-SYWeeklyDailyDrop", [ApiVersion = 15]),
+    #"Filtered rows 1" = Table.SelectRows(Source, each Text.StartsWith([Name], "CUI-All_Avails-") and [Extension] = ".xlsx" and Text.StartsWith([Folder Path], "https://flankspeed.sharepoint-mil.us/sites/NSS-SYWeeklyDailyDrop/Shared Documents/General/DailyData/All Avails/")),
+    #"Filtered hidden files" = Table.SelectRows(#"Filtered rows 1", each [Attributes]?[Hidden]? <> true),
+    #"Extracted text range" = Table.TransformColumns(#"Filtered hidden files", {{"Name", each Text.Middle(_, 15, 8), type text}}),
+    #"Changed column type" = Table.TransformColumnTypes(#"Extracted text range", {{"Name", type date}}),
+    #"Filtered rows" = Table.SelectRows(#"Changed column type", let latest = List.Max(#"Changed column type"[Name]) in each [Name] = latest),
+    #"Filtered hidden files 1" = Table.SelectRows(#"Filtered rows", each [Attributes]?[Hidden]? <> true),
+    #"Invoke custom function" = Table.AddColumn(#"Filtered hidden files 1", "Transform file", each #"All Avails Transform file"([Content])),
+    #"Removed other columns" = Table.SelectColumns(#"Invoke custom function", {"Transform file", "Name"}),
+    #"Expanded Transform file" = Table.ExpandTableColumn(#"Removed other columns", "Transform file", {"SY", "Project ID", "Proj. Name", "Type", "Tpav", "CNO"}),
+    #"Renamed columns" = Table.RenameColumns(#"Expanded Transform file", {{"Name", "DATA DATE"}}),
+    #"Filtered Rows" = Table.SelectRows(#"Renamed columns", each ([CNO] = 1)),
+    #"Replaced Value" = Table.ReplaceValue(#"Filtered Rows","NN","NNSY",Replacer.ReplaceText,{"SY"}),
+    #"Replaced Value1" = Table.ReplaceValue(#"Replaced Value","PN","PNSY",Replacer.ReplaceText,{"SY"}),
+    #"Replaced Value2" = Table.ReplaceValue(#"Replaced Value1","PS","PSNSY",Replacer.ReplaceText,{"SY"}),
+    #"Replaced Value3" = Table.ReplaceValue(#"Replaced Value2","PH","PHNSY",Replacer.ReplaceText,{"SY"}),
+    #"Replaced Value4" = Table.ReplaceValue(#"Replaced Value3","-xx-","",Replacer.ReplaceText,{"Proj. Name"}),
+    #"Replaced Value5" = Table.ReplaceValue(#"Replaced Value4","EDSR","EDSRA",Replacer.ReplaceText,{"Tpav"}),
+    #"Replaced Value6" = Table.ReplaceValue(#"Replaced Value5","EOH","",Replacer.ReplaceText,{"Proj. Name"}),
+    #"Replaced Value7" = Table.ReplaceValue(#"Replaced Value6","PIRA","",Replacer.ReplaceText,{"Proj. Name"}),
+    #"Replaced Value8" = Table.ReplaceValue(#"Replaced Value7","DSRA3","",Replacer.ReplaceText,{"Proj. Name"}),
+    #"Replaced Value9" = Table.ReplaceValue(#"Replaced Value8","EDSRA","",Replacer.ReplaceText,{"Proj. Name"}),
+    #"Replaced Value10" = Table.ReplaceValue(#"Replaced Value9","ERO","",Replacer.ReplaceText,{"Proj. Name"})
+in
+    #"Replaced Value10"
