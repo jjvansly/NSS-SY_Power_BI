@@ -1,0 +1,7 @@
+let
+    Source = #"Weekly Trace Files",
+    #"Removed Other Columns" = Table.SelectColumns(Source,{"SY", "PROJ ID"}),
+    #"Removed Blank Rows" = Table.SelectRows(#"Removed Other Columns", each not List.IsEmpty(List.RemoveMatchingItems(Record.FieldValues(_), {"", null}))),
+    #"Removed Duplicates" = Table.Distinct(#"Removed Blank Rows")
+in
+    #"Removed Duplicates"
