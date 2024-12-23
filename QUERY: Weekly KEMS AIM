@@ -1,0 +1,24 @@
+let
+  Source = SharePoint.Files("https://flankspeed.sharepoint-mil.us/sites/NSS-SYWeeklyDailyDrop", [ApiVersion = 15]),
+  #"Filtered rows 1" = Table.SelectRows(Source, each Text.StartsWith([Name], "CUI-KEMS WEEKLY AIM_") and [Extension] = ".xlsx" and Text.StartsWith([Folder Path], "https://flankspeed.sharepoint-mil.us/sites/NSS-SYWeeklyDailyDrop/Shared Documents/General/DailyData/Weekly KEMS/")),
+  #"Filtered hidden files" = Table.SelectRows(#"Filtered rows 1", each [Attributes]?[Hidden]? <> true),
+    #"Extracted Text Range" = Table.TransformColumns(#"Filtered hidden files", {{"Name", each Text.Middle(_, 20, 10), type text}}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Extracted Text Range",{{"Name", type date}}),
+    #"Filtered Rows1" = Table.SelectRows(#"Changed Type", let latest = List.Max(#"Changed Type"[Name]) in each [Name] = latest),
+  #"Filtered hidden files 1" = Table.SelectRows(#"Filtered Rows1", each [Attributes]?[Hidden]? <> true),
+  #"Invoke custom function" = Table.AddColumn(#"Filtered hidden files 1", "Transform file", each #"Weekly KEMS AIM Transform file"([Content])),
+  #"Expanded Transform file" = Table.ExpandTableColumn(#"Invoke custom function", "Transform file", {"Column1","Column2", "Column3", "Column4", "Column5", "Column6", "Column7"},{"Actual Date","Authorized Date","Event ID","Event Status","Event Type","PROJ ID","SY"}),
+    #"Filtered Rows2" = Table.SelectRows(#"Expanded Transform file", each ([Actual Date] <> "Actual Date")) ,
+  #"Removed columns" = Table.RemoveColumns(#"Filtered Rows2", {"Content", "Extension", "Date accessed", "Date modified", "Date created", "Attributes", "Folder Path"}),
+  #"Changed column type 1" = Table.TransformColumnTypes(#"Removed columns", {{"Actual Date",type text},{"Authorized Date", type text}}),
+  #"Removed blank rows" = Table.SelectRows(#"Changed column type 1", each not List.IsEmpty(List.RemoveMatchingItems(Record.FieldValues(_), {"", null}))),
+  #"Changed column type" = Table.TransformColumnTypes(#"Removed blank rows", {{"Name", type date},{"Actual Date", type date}, {"Authorized Date", type date}, {"SY", type text}, {"PROJ ID", type text}, {"Event Type", type text}, {"Event Status", type text}, {"Event ID", type text}}),
+  #"Renamed columns" = Table.RenameColumns(#"Changed column type", {{"Name", "DATA DATE"}}),
+  #"Removed errors" = Table.RemoveRowsWithErrors(#"Renamed columns", {"DATA DATE"}),
+  #"Sorted rows" = Table.Sort(#"Removed errors", {{"Actual Date", Order.Ascending}, {"Authorized Date", Order.Ascending}}),
+  #"Changed column type 2" = Table.TransformColumnTypes(#"Sorted rows", {{"Authorized Date", type date}}),
+
+
+  #"Filtered Rows" = Table.SelectRows(#"Changed column type 2", each ([Event Type] <> "MS") and ([Event ID] <> null))
+in
+    #"Filtered Rows"
