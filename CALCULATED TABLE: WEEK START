@@ -1,0 +1,15 @@
+WEEK START = 
+VAR DateStart = 
+    DATE( 2022, 1, 1)
+VAR DateEnd = 
+    DATE( 2029, 12, 31)
+VAR WeekStart = 
+        FILTER(
+            ADDCOLUMNS( CALENDAR( DateStart, DateEnd), "Week Number", WEEKNUM( [Date], 2)),
+            WEEKDAY( [Date], 2 ) = 1
+        )
+RETURN
+    WeekStart
+
+_____ CALCULATED COLUMNS ____________________________________
+WEEK END = [WEEK START] + 6
